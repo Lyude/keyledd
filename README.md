@@ -24,5 +24,5 @@ make
 Dependencies
 ============
 
-	* libevdev
-	* glib-2.0
+* libevdev
+* glib-2.0
