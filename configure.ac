@@ -1,4 +1,4 @@
-AC_INIT([kbdledd], [0.0], [thatslyude@gmail.com])
+AC_INIT([keyledd], [0.0], [thatslyude@gmail.com])
 AM_INIT_AUTOMAKE([foreign -Wall])
 
 # Check for programs
