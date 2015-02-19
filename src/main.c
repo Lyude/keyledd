@@ -37,9 +37,11 @@ static char *led_brightness_on_str,
 static size_t led_brightness_on_strlen,
 	      led_brightness_off_strlen;
 
-static bool
+static uint16_t
 parse_keyboard_led(const char *value,
 		   GError **error) {
+	uint16_t keyboard_led;
+
 	if (strcasecmp(value, "caps_lock") == 0)
 		keyboard_led = LED_CAPSL;
 	else if (strcasecmp(value, "scroll_lock") == 0)
@@ -50,10 +52,10 @@ parse_keyboard_led(const char *value,
 	else {
 		*error = g_error_new(G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
 				     "Invalid value for keyboard-led");
-		return false;
+		return 0;
 	}
 
-	return true;
+	return keyboard_led;
 }
 
 static gboolean
@@ -61,7 +63,9 @@ keyboard_led_option_cb(const char *option_name,
 		       const char *value,
 		       void *data,
 		       GError **error) {
-	return parse_keyboard_led(value, error);
+	keyboard_led = parse_keyboard_led(value, error);
+
+	return keyboard_led;
 }
 
 static inline void
