@@ -30,8 +30,9 @@ static uint16_t keyboard_led;
 static int led_brightness_on,
 	   led_brightness_off;
 
-static bool parse_keyboard_led(const char *value,
-			       GError **error) {
+static bool
+parse_keyboard_led(const char *value,
+		   GError **error) {
 	if (strcasecmp(value, "caps_lock") == 0)
 		keyboard_led = LED_CAPSL;
 	else if (strcasecmp(value, "scroll_lock") == 0)
@@ -48,16 +49,18 @@ static bool parse_keyboard_led(const char *value,
 	return true;
 }
 
-static gboolean keyboard_led_option_cb(const char *option_name,
-				       const char *value,
-				       void *data,
-				       GError **error) {
+static gboolean
+keyboard_led_option_cb(const char *option_name,
+		       const char *value,
+		       void *data,
+		       GError **error) {
 	return parse_keyboard_led(value, error);
 }
 
-static inline void require_option(GOptionContext *context,
-				  bool option,
-				  const char *msg) {
+static inline void
+require_option(GOptionContext *context,
+	       bool option,
+	       const char *msg) {
 	if (!option) {
 		fprintf(stderr,
 			"Error: %s\n"
@@ -76,7 +79,8 @@ static GOptionEntry options[] = {
 	{ NULL }
 };
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
 	struct libevdev *dev = NULL;
 	GError *error = NULL;
 	GOptionContext *context;
