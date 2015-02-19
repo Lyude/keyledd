@@ -30,6 +30,11 @@ static uint16_t keyboard_led;
 static int led_brightness_on,
 	   led_brightness_off;
 
+static char *led_brightness_on_str,
+	    *led_brightness_off_str;
+static size_t led_brightness_on_strlen,
+	      led_brightness_off_strlen;
+
 static bool
 parse_keyboard_led(const char *value,
 		   GError **error) {
@@ -79,6 +84,29 @@ static GOptionEntry options[] = {
 	{ NULL }
 };
 
+static void
+update_led(int led_fd,
+	   uint16_t value) {
+	char *out;
+	size_t out_len;
+
+	if (value == 1) {
+		out = led_brightness_on_str;
+		out_len = led_brightness_on_strlen;
+	}
+	else {
+		out = led_brightness_off_str;
+		out_len = led_brightness_off_strlen;
+	}
+
+	if (write(led_fd, out, out_len) < 0) {
+		fprintf(stderr,
+			"Error: Failed to write to \"%s\": %s\n",
+			led_path, strerror(errno));
+		exit(1);
+	}
+}
+
 int
 main(int argc, char *argv[]) {
 	struct libevdev *dev = NULL;
@@ -86,10 +114,6 @@ main(int argc, char *argv[]) {
 	GOptionContext *context;
 	int device_fd, led_fd;
 	int rc;
-	char *led_brightness_on_str,
-	     *led_brightness_off_str;
-	size_t led_brightness_on_strlen,
-	       led_brightness_off_strlen;
 
 	context = g_option_context_new("- map keyboard LED to another LED");
 	g_option_context_add_main_entries(context, options, NULL);
@@ -140,8 +164,6 @@ main(int argc, char *argv[]) {
 
 	while (true) {
 		struct input_event ev;
-		char *out;
-		size_t out_len;
 
 		rc = libevdev_next_event(dev,
 					 LIBEVDEV_READ_FLAG_BLOCKING |
@@ -150,24 +172,8 @@ main(int argc, char *argv[]) {
 		if (rc != 0)
 			break;
 
-		if (ev.type == EV_LED && ev.code == keyboard_led) {
-			if (ev.value == 1) {
-				out = led_brightness_on_str;
-				out_len = led_brightness_on_strlen;
-			}
-			else {
-				out = led_brightness_off_str;
-				out_len = led_brightness_off_strlen;
-			}
-
-			if (write(led_fd, out, out_len) < 0) {
-				fprintf(stderr,
-					"Error: Failed to write to \"%s\": %s\n",
-					led_path, strerror(errno));
-				exit(1);
-			}
-		}
-
+		if (ev.type == EV_LED && ev.code == keyboard_led)
+			update_led(led_fd, ev.value);
 	}
 
 	return 0;
