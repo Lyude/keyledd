@@ -53,12 +53,12 @@ parse_keyboard_led(const char *value,
 		   GError **error) {
 	uint16_t keyboard_led;
 
-	if (strcasecmp(value, "caps_lock") == 0)
+	if (strcasecmp(value, "capslock") == 0)
 		keyboard_led = LED_CAPSL;
-	else if (strcasecmp(value, "scroll_lock") == 0)
+	else if (strcasecmp(value, "scrolllock") == 0)
 		keyboard_led = LED_SCROLLL;
-	else if (strcasecmp(value, "num_lock") == 0 ||
-		 strcasecmp(value, "number_lock") == 0)
+	else if (strcasecmp(value, "numlock") == 0 ||
+		 strcasecmp(value, "numberlock") == 0)
 		keyboard_led = LED_NUML;
 	else {
 		*error = g_error_new(G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
@@ -105,7 +105,7 @@ static GOptionEntry options[] = {
 	{ "version", 'V', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, print_version, "Print version", NULL },
 	{ "input-device", 'i', G_OPTION_FLAG_NONE, G_OPTION_ARG_FILENAME, &arg_led_config.device_path, "Evdev device to monitor", "/dev/input/eventX" },
 	{ "led-device", 'o', G_OPTION_FLAG_NONE, G_OPTION_ARG_FILENAME, &arg_led_config.led_path, "LED device to bind to", "/sys/class/leds/some_led" },
-	{ "keyboard-led", 'l', G_OPTION_FLAG_NONE, G_OPTION_ARG_CALLBACK, keyboard_led_option_cb, "LED to emulate", "(caps|scroll|num[ber])_lock" },
+	{ "keyboard-led", 'l', G_OPTION_FLAG_NONE, G_OPTION_ARG_CALLBACK, keyboard_led_option_cb, "LED to emulate", "(caps|scroll|num[ber])lock" },
 	{ "brightness-on", 0, G_OPTION_FLAG_NONE, G_OPTION_ARG_INT, &arg_led_config.led_brightness_on, "Brightness value when LED is on", "brightness" },
 	{ "brightness-off", 0, G_OPTION_FLAG_NONE, G_OPTION_ARG_INT, &arg_led_config.led_brightness_off, "Brightness value when LED is off", "brightness" },
 	{ NULL }
