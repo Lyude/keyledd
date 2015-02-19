@@ -69,7 +69,7 @@ require_option(GOptionContext *context,
 	if (!option) {
 		fprintf(stderr,
 			"Error: %s\n"
-			"%s\n",
+			"%s",
 			msg, g_option_context_get_help(context, false, NULL));
 		exit(1);
 	}
@@ -129,8 +129,10 @@ main(int argc, char *argv[]) {
 		       "No LED device specified");
 	require_option(context, keyboard_led,
 		       "No keyboard LED specified");
-	require_option(context, led_brightness_on,
-		       "No brightness on value specified");
+
+	/* If the user doesn't specify a brightness, default to 1 */
+	if (led_brightness_on == 0)
+		led_brightness_on = 1;
 
 	device_fd = open(device_path, O_RDONLY);
 	if (device_fd == -1) {
