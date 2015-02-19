@@ -1,4 +1,4 @@
-AC_INIT([keyledd], [0.0], [thatslyude@gmail.com])
+AC_INIT([keyledd], [0.0], [thatslyude@gmail.com], [keyledd], [https://github.com/Lyude/keyledd])
 AM_INIT_AUTOMAKE([foreign -Wall])
 
 # Check for programs
