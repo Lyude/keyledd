@@ -6,7 +6,7 @@ keyledd is a very simple and small daemon for using a system LED on Linux to rep
 How do I use it?
 ================
 
-Right now, there's no packages for this, nor is there a make install option (but one will be on the way!). The simplest way to use it is to compile the application, and simply run it from the `src/` directory. All of the options necessary to configure keyledd can be found by running:
+Right now, there's no packages for this. The simplest way to use it is to compile the application, and simply run it from the `src/` directory. All of the options necessary to configure keyledd can be found by running:
 
 ``
 ./src/keyledd -h
