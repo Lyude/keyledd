@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <libevdev/libevdev.h>
 
+#include "../config.h"
+
 static char *device_path;
 static char *led_path;
 static uint16_t keyboard_led;
@@ -117,6 +119,19 @@ main(int argc, char *argv[]) {
 
 	context = g_option_context_new("- map keyboard LED to another LED");
 	g_option_context_add_main_entries(context, options, NULL);
+	g_option_context_set_description(context,
+		"keyledd is a daemon intended to help users who have no LED for a certain\n"
+		"functionality on their keyboard (for example, a caps lock led), by \n"
+		"allowing them to remap a different LED on their computer to mimic the \n"
+		"missing LED's behavior.\n"
+		"\n"
+		"License GPLv2: GNU GPL version 2 <http://gnu.org/licenses/gpl.html>\n"
+		"This is free software: you are free to change and redistribute it.\n"
+		"There is NO WARRANTY, to the extent permitted by law.\n"
+		"\n"
+		"Written by Lyude <" PACKAGE_BUGREPORT "> (C) 2015\n"
+		"You can find the project page here: " PACKAGE_URL
+		);
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		fprintf(stderr, "Invalid options: %s\n", error->message);
