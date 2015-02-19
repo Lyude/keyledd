@@ -181,11 +181,11 @@ init_led_config(struct led_config *config) {
 int
 main(int argc, char *argv[]) {
 	GError *error = NULL;
-	GOptionContext *context;
+	GOptionContext *option_context;
 
-	context = g_option_context_new("- map keyboard LED to another LED");
-	g_option_context_add_main_entries(context, options, NULL);
-	g_option_context_set_description(context,
+	option_context = g_option_context_new("- map keyboard LED to another LED");
+	g_option_context_add_main_entries(option_context, options, NULL);
+	g_option_context_set_description(option_context,
 		"keyledd is a daemon intended to help users who have no LED for a certain\n"
 		"functionality on their keyboard (for example, a caps lock led), by \n"
 		"allowing them to remap a different LED on their computer to mimic the \n"
@@ -199,7 +199,7 @@ main(int argc, char *argv[]) {
 		"You can find the project page here: " PACKAGE_URL
 		);
 
-	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+	if (!g_option_context_parse(option_context, &argc, &argv, &error)) {
 		fprintf(stderr, "Invalid options: %s\n", error->message);
 		exit(1);
 	}
