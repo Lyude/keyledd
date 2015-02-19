@@ -213,6 +213,8 @@ main(int argc, char *argv[]) {
 
 	init_led_config(&arg_led_config);
 
+	g_option_context_free(context);
+
 	/* Update the LED to the current state of the LED */
 	update_led(&arg_led_config,
 		   libevdev_get_event_value(arg_led_config.dev, EV_LED,
