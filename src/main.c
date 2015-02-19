@@ -162,6 +162,9 @@ main(int argc, char *argv[]) {
 	led_brightness_off_str = g_strdup_printf("%d\n", led_brightness_off);
 	led_brightness_off_strlen = strlen(led_brightness_off_str);
 
+	/* Update the LED to the current state of the LED */
+	update_led(led_fd, libevdev_get_event_value(dev, EV_LED, keyboard_led));
+
 	while (true) {
 		struct input_event ev;
 
