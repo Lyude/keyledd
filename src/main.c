@@ -77,7 +77,17 @@ require_option(GOptionContext *context,
 	}
 }
 
+static void
+print_version(const char *option_name,
+	      const char *value,
+	      void *data,
+	      GError **error) {
+	printf(PACKAGE_STRING "\n");
+	exit(0);
+}
+
 static GOptionEntry options[] = {
+	{ "version", 'V', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, print_version, "Print version", NULL },
 	{ "input-device", 'i', G_OPTION_FLAG_NONE, G_OPTION_ARG_FILENAME, &device_path, "Evdev device to monitor", "/dev/input/eventX" },
 	{ "led-device", 'o', G_OPTION_FLAG_NONE, G_OPTION_ARG_FILENAME, &led_path, "LED device to bind to", "/sys/class/leds/some_led" },
 	{ "keyboard-led", 'l', G_OPTION_FLAG_NONE, G_OPTION_ARG_CALLBACK, keyboard_led_option_cb, "LED to emulate", "(caps|scroll|num[ber])_lock" },
