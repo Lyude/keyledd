@@ -57,7 +57,8 @@ static char *config_file_path = SYSCONFDIR "/keyledd.conf";
 
 enum keyledd_error {
 	KEYLEDD_ERROR_KEYBOARD_LED_TAKEN,
-	KEYLEDD_ERROR_SYSTEM_LED_TAKEN
+	KEYLEDD_ERROR_SYSTEM_LED_TAKEN,
+	KEYLEDD_ERROR_NO_LEDS_DEFINED
 };
 
 /* Hash keys for keyboard led/device pairs look like this:
@@ -275,6 +276,7 @@ parse_conf_file(GError **error) {
 	GKeyFile *key_file = g_key_file_new();
 	char *key_file_data;
 	char **groups;
+	size_t groups_len;
 
 	g_return_val_if_fail(
 	    g_file_get_contents(config_file_path, &key_file_data, NULL, error),
@@ -286,7 +288,15 @@ parse_conf_file(GError **error) {
 
 	g_free(key_file_data);
 
-	groups = g_key_file_get_groups(key_file, NULL);
+	groups = g_key_file_get_groups(key_file, &groups_len);
+
+	if (groups_len == 0) {
+		*error = g_error_new(KEYLEDD_ERROR,
+				     KEYLEDD_ERROR_NO_LEDS_DEFINED,
+				     "No LEDs defined",
+				     config_file_path);
+		return false;
+	}
 
 	for (int i = 0; groups[i] != NULL; i++) {
 		struct led_config *config = g_new0(struct led_config, 1);
