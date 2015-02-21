@@ -1,0 +1,10 @@
+[Unit]
+Description=keyledd daemon
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/keyledd
+
+[Install]
+WantedBy=multi-user.target
