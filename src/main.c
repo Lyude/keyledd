@@ -289,7 +289,7 @@ parse_conf_file(GError **error) {
 	if (groups_len == 0) {
 		*error = g_error_new(KEYLEDD_ERROR,
 				     KEYLEDD_ERROR_NO_LEDS_DEFINED,
-				     "No LEDs defined",
+				     "No LEDs defined in %s",
 				     config_file_path);
 		return false;
 	}
