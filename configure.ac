@@ -10,6 +10,7 @@ AM_PROG_CC_C_O
 AC_HEADER_STDBOOL
 
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
+PKG_CHECK_MODULES([GIO], [gio-2.0])
 PKG_CHECK_MODULES([EVDEV], [libevdev])
 
 AC_DEFINE_DIR([SYSCONFDIR], [sysconfdir], [Where config files are stored.])

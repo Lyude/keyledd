@@ -112,6 +112,57 @@ static GOptionEntry options[] = {
 	{ NULL }
 };
 
+static void
+init_led_states() {
+	GList *configs = g_hash_table_get_values(led_configs);
+	GError *error = NULL;
+
+	g_debug("Initializing LED states");
+
+	for (GList *l = configs; l != NULL; l = l->next) {
+		struct led_config *config = l->data;
+		char *out_data;
+		size_t out_len;
+
+		if (libevdev_get_event_value(config->dev, EV_LED,
+					     config->keyboard_led) == 1) {
+			out_data = config->led_brightness_on_str;
+			out_len = config->led_brightness_on_strlen;
+		}
+		else {
+			out_data = config->led_brightness_off_str;
+			out_len = config->led_brightness_off_strlen;
+		}
+
+		if (g_io_channel_write_chars(config->led_device,
+					     out_data, out_len, NULL,
+					     &error) == G_IO_STATUS_ERROR) {
+			fprintf(stderr, "Couldn't write to %s: %s\n",
+				config->led_path, error->message);
+			exit(1);
+		}
+	}
+
+	g_list_free(configs);
+}
+
+static void
+prepare_for_sleep(GDBusConnection *connection,
+		  const char *sender_name,
+		  const char *object_path,
+		  const char *interface_name,
+		  const char *signal_name,
+		  GVariant *parameters,
+		  gpointer user_data) {
+	GVariant *going_to_sleep =
+		g_variant_get_child_value(parameters, 0);
+
+	if (!g_variant_get_boolean(going_to_sleep))
+		init_led_states();
+
+	g_variant_unref(going_to_sleep);
+}
+
 static gboolean
 update_led(GIOChannel *source,
 	   GIOCondition condition,
@@ -429,37 +480,30 @@ main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	/* Initialize all of the LEDs to match their keyboard LEDs state */
+	/* Connect to UPower to update the LED state after standby/hibernate */
 	{
-		GList *configs = g_hash_table_get_values(led_configs);
+		GDBusConnection *dbus_connection =
+			g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
 
-		for (GList *l = configs; l != NULL; l = l->next) {
-			struct led_config *config = l->data;
-			char *out_data;
-			size_t out_len;
-
-			if (libevdev_get_event_value(config->dev, EV_LED,
-						     config->keyboard_led) == 1) {
-				out_data = config->led_brightness_on_str;
-				out_len = config->led_brightness_on_strlen;
-			}
-			else {
-				out_data = config->led_brightness_off_str;
-				out_len = config->led_brightness_off_strlen;
-			}
-
-			if (g_io_channel_write_chars(config->led_device,
-						     out_data, out_len, NULL,
-						     &error) ==
-			    G_IO_STATUS_ERROR) {
-				fprintf(stderr, "Couldn't write to %s: %s\n",
-					config->led_path, strerror(errno));
-				exit(1);
-			}
+		if (!dbus_connection) {
+			fprintf(stderr, "Couldn't connect to dbus: %s\n",
+				error->message);
+			exit(1);
 		}
 
-		g_list_free(configs);
+		g_dbus_connection_signal_subscribe(dbus_connection,
+						   NULL,
+						   "org.freedesktop.login1.Manager",
+						   "PrepareForSleep",
+						   NULL,
+						   NULL,
+						   G_DBUS_SIGNAL_FLAGS_NONE,
+						   prepare_for_sleep,
+						   NULL, NULL);
 	}
+
+	/* Initialize all of the LEDs to match their keyboard LEDs state */
+	init_led_states();
 
 	main_loop = g_main_loop_new(NULL, false);
 	g_main_loop_run(main_loop);
