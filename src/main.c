@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <libevdev/libevdev.h>
+#include <gio/gio.h>
 
 #include "../config.h"
 
@@ -33,8 +34,8 @@ struct led_config {
 	char *device_path;
 	char *led_path;
 
-	int device_fd;
-	int led_fd;
+	GIOChannel *input_device;
+	GIOChannel *led_device;
 
 	uint16_t keyboard_led;
 
@@ -49,8 +50,6 @@ struct led_config {
 };
 
 static GHashTable *led_configs;
-static GHashTable *evdev_fds;
-static GArray *led_poll_fds;
 static char *config_file_path = SYSCONFDIR "/keyledd.conf";
 
 #define KEYLEDD_ERROR (g_quark_from_static_string("keyledd-error-domain"))
@@ -113,6 +112,64 @@ static GOptionEntry options[] = {
 	{ NULL }
 };
 
+static gboolean
+update_led(GIOChannel *source,
+	   GIOCondition condition,
+	   gpointer data) {
+	struct libevdev *dev = data;
+	struct input_event ev;
+	int dev_fd;
+	struct led_config *config;
+	GError *error = NULL;
+
+	dev_fd = g_io_channel_unix_get_fd(source);
+
+	while (libevdev_has_event_pending(dev)) {
+		int64_t hash_value;
+		char *out_data;
+		size_t out_len;
+		GIOStatus rc;
+
+		libevdev_next_event(dev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
+
+		if (G_LIKELY(ev.type != EV_LED))
+			continue;
+
+		hash_value = get_led_config_hash_key(dev_fd, ev.code);
+		config = g_hash_table_lookup(led_configs, &hash_value);
+
+		if (!config)
+			continue;
+
+		if (ev.value == 1) {
+			out_data = config->led_brightness_on_str;
+			out_len = config->led_brightness_on_strlen;
+		}
+		else {
+			out_data = config->led_brightness_off_str;
+			out_len = config->led_brightness_off_strlen;
+		}
+
+		rc = g_io_channel_write_chars(config->led_device, out_data,
+					      out_len, NULL, &error);
+		if (G_UNLIKELY(rc != G_IO_STATUS_NORMAL)) {
+			fprintf(stderr,
+				"Couldn't write to LED device for %s: %s\n",
+				config->name, error->message);
+			exit(1);
+		}
+	}
+
+	return true;
+}
+
+static gboolean
+io_channel_failed(GIOChannel *source,
+		  GIOCondition condition,
+		  gpointer data) {
+	return false;
+}
+
 static bool
 init_led_config(struct led_config *config,
 		GError **error) {
@@ -134,7 +191,7 @@ init_led_config(struct led_config *config,
 				g_free(c->device_path);
 
 				config->device_path = c->device_path;
-				config->device_fd = c->device_fd;
+				config->input_device = c->input_device;
 				config->dev = c->dev;
 
 				device_already_opened = true;
@@ -194,18 +251,18 @@ init_led_config(struct led_config *config,
 	}
 
 	if (!device_already_opened) {
-		GPollFD poll_fd;
+		GIOChannel *io_channel =
+			g_io_channel_new_file(config->device_path, "r", error);
 
-		config->device_fd = open(config->device_path,
-					 O_RDONLY | O_NONBLOCK);
-		if (config->device_fd == -1) {
-			fprintf(stderr, "Failed to open %s for \"%s\": %s\n",
-				config->device_path, config->name,
-				strerror(errno));
-			exit(1);
-		}
+		g_return_val_if_fail(io_channel, false);
 
-		rc = libevdev_new_from_fd(config->device_fd, &config->dev);
+		g_return_val_if_fail(
+		    g_io_channel_set_flags(io_channel, G_IO_FLAG_NONBLOCK,
+					   error) == G_IO_STATUS_NORMAL,
+		    false);
+
+		rc = libevdev_new_from_fd(g_io_channel_unix_get_fd(io_channel),
+					  &config->dev);
 		if (rc < 0) {
 			fprintf(stderr,
 				"Failed to initialize libevdev for \"%s\": %s\n",
@@ -213,11 +270,14 @@ init_led_config(struct led_config *config,
 			exit(1);
 		}
 
-		g_hash_table_insert(evdev_fds, &config->device_fd, config->dev);
-
-		poll_fd.fd = config->device_fd;
-		poll_fd.events = G_IO_IN;
-		g_array_append_val(led_poll_fds, poll_fd);
+		g_return_val_if_fail(
+		    g_io_channel_set_encoding(
+			io_channel, NULL, error) == G_IO_STATUS_NORMAL,
+		    false);
+		config->input_device = io_channel;
+		g_io_add_watch(io_channel,
+			       G_IO_IN | G_IO_PRI,
+			       update_led, config->dev);
 	}
 
 	config->led_path =
@@ -225,15 +285,19 @@ init_led_config(struct led_config *config,
 			  strlen(config->led_path) + sizeof("/brightness"));
 	strcat(config->led_path, "/brightness");
 
-	config->led_fd = open(config->led_path, O_WRONLY);
-	if (config->led_fd == -1) {
-		fprintf(stderr, "Failed to open %s for \"%s\": %s\n",
-			config->led_path, config->name, strerror(errno));
-		exit(1);
-	}
+	config->led_device = g_io_channel_new_file(config->led_path, "w",
+						   error);
+	g_return_val_if_fail(config->led_device, false);
 
-	*hash_key = get_led_config_hash_key(config->device_fd,
-					    config->keyboard_led);
+	g_return_val_if_fail(
+	    g_io_channel_set_encoding(
+		config->led_device, NULL, error) == G_IO_STATUS_NORMAL,
+	    false);
+	g_io_channel_set_buffered(config->led_device, false);
+
+	*hash_key = get_led_config_hash_key(
+	    g_io_channel_unix_get_fd(config->input_device),
+	    config->keyboard_led);
 	g_hash_table_insert(led_configs, hash_key, config);
 
 	return true;
@@ -332,6 +396,7 @@ int
 main(int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *option_context;
+	GMainLoop *main_loop;
 
 	option_context = g_option_context_new("- map keyboard LED to another LED");
 	g_option_context_add_main_entries(option_context, options, NULL);
@@ -356,9 +421,7 @@ main(int argc, char *argv[]) {
 
 	g_option_context_free(option_context);
 
-	led_poll_fds = g_array_new(false, true, sizeof(GPollFD));
 	led_configs = g_hash_table_new(g_int64_hash, g_int64_equal);
-	evdev_fds = g_hash_table_new(g_int_hash, g_int_equal);
 
 	if (!parse_conf_file(&error)) {
 		fprintf(stderr, "Config file error: %s\n",
@@ -385,7 +448,10 @@ main(int argc, char *argv[]) {
 				out_len = config->led_brightness_off_strlen;
 			}
 
-			if (write(config->led_fd, out_data, out_len) == -1) {
+			if (g_io_channel_write_chars(config->led_device,
+						     out_data, out_len, NULL,
+						     &error) ==
+			    G_IO_STATUS_ERROR) {
 				fprintf(stderr, "Couldn't write to %s: %s\n",
 					config->led_path, strerror(errno));
 				exit(1);
@@ -395,65 +461,8 @@ main(int argc, char *argv[]) {
 		g_list_free(configs);
 	}
 
-	while (g_poll((GPollFD*)led_poll_fds->data, led_poll_fds->len, -1) != -1) {
-		for (unsigned int i = 0; i < led_poll_fds->len; i++) {
-			GPollFD *c = &g_array_index(led_poll_fds, GPollFD, i);
-			struct libevdev *dev;
-			struct input_event ev;
-			struct led_config *config;
-			int rc;
-
-			if (!c->revents)
-				continue;
-
-			dev = g_hash_table_lookup(evdev_fds, &c->fd);
-
-			while (libevdev_has_event_pending(dev)) {
-				int64_t hash_key;
-				char *out_data;
-				size_t out_len;
-
-				rc = libevdev_next_event(
-				    dev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
-
-				if (G_UNLIKELY(rc != 0)) {
-					fprintf(stderr,
-						"Error: %s\n",
-						strerror(rc));
-					exit(1);
-				}
-
-				if (ev.type != EV_LED)
-					continue;
-
-				hash_key = get_led_config_hash_key_from_values(
-				    c->fd, ev.code);
-				config = g_hash_table_lookup(led_configs,
-							     &hash_key);
-
-				if (!config)
-					continue;
-
-				if (ev.value == 1) {
-					out_data = config->led_brightness_on_str;
-					out_len = config->led_brightness_on_strlen;
-				}
-				else {
-					out_data = config->led_brightness_off_str;
-					out_len = config->led_brightness_off_strlen;
-				}
-
-				if (G_UNLIKELY(write(config->led_fd, out_data,
-						     out_len) == -1)) {
-					fprintf(stderr,
-						"Couldn't write to %s: %s\n",
-						config->led_path,
-						strerror(errno));
-					exit(1);
-				}
-			}
-		}
-	}
+	main_loop = g_main_loop_new(NULL, false);
+	g_main_loop_run(main_loop);
 
 	return 0;
 }
