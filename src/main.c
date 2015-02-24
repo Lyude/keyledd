@@ -67,16 +67,6 @@ enum keyledd_error {
  * 32-48: LED code
  */
 static inline int64_t
-get_led_config_hash_key_from_config(struct led_config *config) {
-	int64_t key;
-
-	key = config->device_fd;
-	key |= ((int64_t)config->keyboard_led << 32);
-
-	return key;
-}
-
-static inline int64_t
 get_led_config_hash_key_from_values(int device_fd,
 				    uint16_t keyboard_led) {
 	int64_t key;
@@ -85,6 +75,12 @@ get_led_config_hash_key_from_values(int device_fd,
 	key |= ((int64_t)keyboard_led << 32);
 
 	return key;
+}
+
+static inline int64_t
+get_led_config_hash_key_from_config(struct led_config *config) {
+	return get_led_config_hash_key_from_values(config->device_fd,
+						   config->keyboard_led);
 }
 
 static uint16_t
