@@ -139,9 +139,9 @@ init_led_config(struct led_config *config,
 			if (!device_already_opened) {
 				g_free(c->device_path);
 
-				c->device_path = config->device_path;
-				c->device_fd = config->device_fd;
-				c->dev = config->dev;
+				config->device_path = c->device_path;
+				config->device_fd = c->device_fd;
+				config->dev = c->dev;
 
 				device_already_opened = true;
 			}
@@ -170,14 +170,14 @@ init_led_config(struct led_config *config,
 		/* We're already checking all of the current groups, so why not
 		 * share led brightness strings/string lengths while we're at it
 		 */
-		if (c->led_brightness_on == c->led_brightness_off) {
+		if (c->led_brightness_on == config->led_brightness_on) {
 			config->led_brightness_on_str =
 				c->led_brightness_on_str;
 			config->led_brightness_on_strlen =
 				c->led_brightness_on_strlen;
 		}
 
-		if (c->led_brightness_off == c->led_brightness_off) {
+		if (c->led_brightness_off == config->led_brightness_off) {
 			config->led_brightness_off_str =
 				c->led_brightness_off_str;
 			config->led_brightness_off_strlen =
