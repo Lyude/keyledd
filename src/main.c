@@ -119,29 +119,6 @@ static GOptionEntry options[] = {
 	{ NULL }
 };
 
-static void
-update_led(struct led_config *config,
-	   uint16_t value) {
-	char *out;
-	size_t out_len;
-
-	if (value == 1) {
-		out = config->led_brightness_on_str;
-		out_len = config->led_brightness_on_strlen;
-	}
-	else {
-		out = config->led_brightness_off_str;
-		out_len = config->led_brightness_off_strlen;
-	}
-
-	if (write(config->led_fd, out, out_len) < 0) {
-		fprintf(stderr,
-			"Error: Failed to write to \"%s\": %s\n",
-			config->led_path, strerror(errno));
-		exit(1);
-	}
-}
-
 static bool
 init_led_config(struct led_config *config,
 		GError **error) {
