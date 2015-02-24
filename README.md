@@ -6,13 +6,18 @@ keyledd is a very simple and small daemon for using a system LED on Linux to rep
 How do I use it?
 ================
 
-Right now, there's no packages for this. The simplest way to use it is to compile the application, and simply run it from the `src/` directory. All of the options necessary to configure keyledd can be found by running:
+By default, keyledd reads from the configuration file `/etc/keyledd.conf`. Within this file, you specify each input device you want monitored, along with the key LED you want monitored on each device. For example, on my T440s, I use this:
 
-``
-./src/keyledd -h
-``
+```INI
+[T440s Caps Lock] # The group name. This can be whatever you want.
+KeyboardLed=capslock # Can be "capslock", "numlock", or "scrolllock"
+InputDevice=/dev/input/by-path/platform-i8042-serio-0-event-kbd # The evdev input device you'd like to monitor, in this case the built-in keyboard
+LedDevice=/sys/class/leds/tpacpi::unknown_led # The LED you'd like to act as the indicator, on the T440s the first unknown_led corresponds to the Fn lock key
+BrightnessOn=1 # The brightness value to use when the Keyboard LED is on (optional, defaults to 1)
+BrightnessOff=0 # The brightness value to use when the Keyboard LED is off (optional, defaults to 0)
+```
 
-Eventually when I get the chance, I will make a proper install option in the makefile, along with adding the ability to run as a daemon, and parse a configuration file in `/etc`.
+You can specify as many LEDs as you wish. Just use the systemd unit to start the daemon on boot, and it will do the rest for you!
 
 How to compile keyledd
 ======================
@@ -22,6 +27,7 @@ Go into the directory you've downloaded the source code to, and run:
 ``
 ./autogen.sh
 make
+make install
 ``
 
 Dependencies
@@ -29,3 +35,4 @@ Dependencies
 
 * libevdev
 * glib-2.0
+* gio-2.0
