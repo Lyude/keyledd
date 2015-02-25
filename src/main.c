@@ -239,7 +239,7 @@ init_led_config(struct led_config *config,
 
 		if (strcmp(config->device_path, c->device_path) == 0) {
 			if (!device_already_opened) {
-				g_free(c->device_path);
+				g_free(config->device_path);
 
 				config->device_path = c->device_path;
 				config->input_device = c->input_device;
