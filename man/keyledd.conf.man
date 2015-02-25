@@ -1,0 +1,45 @@
+.TH KEYLEDD.CONF 5 "keyledd __version__"
+.SH NAME
+keyledd.conf \- configuration file for keyledd
+.SH SYNOPSIS
+.B __config_file_path__
+.
+.\" *******************************************************
+.SH DESCRIPTION
+.
+This file configures the various parameters available to keyledd. Specifically,
+which keyboard LEDs to mimic with system LEDs.
+.
+.\" *******************************************************
+.SH OPTIONS
+.
+Each keyboard LED to be emulated is placed in it's own group. This group can
+have any title (the title of the group is only ever used in error output from
+keyledd). Each group has the following options available:
+.TP
+.IR KeyboardLed=
+Sets the keyboard LED this group will be targeting. One of "capslock",
+"scrolllock", "numlock", or "numberlock".
+.TP
+.IR InputDevice=
+Sets the input device that will be monitored for LED changes. This must point to
+a valid evdev device, e.g. anything in /dev/input that isn't a mouse. For evdev
+paths that remain consistent throughout reboots, you can use the event nodes in
+"/dev/input/by-path/".
+.TP
+.IR LedDevice=
+Sets the LED device that will represent the keyboard LED. This must point to a
+valid Linux LED device (e.g. something in "/sys/class/leds/").
+.TP
+.IR BrightnessOn=
+Sets the brightness value that will be used when the keyboard LED is turned on.
+This is optional and if not specified, defaults to 1.
+.TP
+.IR BrightnessOff=
+Sets the brightness value that will be used when the keyboard LED is turned off.
+This is optional and if not specified, defaults to 0.
+.
+.\" *******************************************************
+.SH "SEE ALSO"
+.BR keyledd (1)
+.\" vim: set ft=groff :

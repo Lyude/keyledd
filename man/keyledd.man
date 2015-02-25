@@ -1,0 +1,52 @@
+.TH KEYLEDD 1 "keyledd __version__"
+.SH NAME
+keyledd \- a daemon for missing keyboard LEDs
+.SH SYNOPSIS
+.B keyledd \fR[\fB-hV\fR] [\fB-c \fR\fIconfig-file\fR]
+.
+.\" *******************************************************
+.SH DESCRIPTION
+.
+.B keyledd
+is a daemon that allows one to use another LED on their system in order to
+emulate a missing keyboard LED. Because keyledd uses libevdev to monitor the
+state of the keyboard LED on an input device, keyledd is able to run completely
+independently of any display server or display environment.
+
+keyledd allows for the configuration of multiple LEDs, and is able to restore
+each LED's state after standby, hibernation, etc.
+.
+.\" *******************************************************
+.SH OPTIONS
+.
+.SS
+.BR \-h\fR,\ \fB\-\-help
+Print a summary of command line options, and quit.
+.TP
+.BR \-V\fR,\ \fB\-\-version
+Print the version of keyledd, and quit.
+.TP
+.BR \-c\fR,\ \fB\-\-config\-file\fR=\fIfile\fR
+Specify an alternate config file for keyledd to use. By default, keyledd uses
+__config_file_path__
+.
+.\" *******************************************************
+.SH FILES
+.
+By default, the majority of the configuration options for keyledd lie in it's
+config file:
+.PP
+.BI __config_file_path__
+.
+.\" *******************************************************
+.SH AUTHOR
+keyledd was written by Lyude <\fIthatslyude@gmail.com\fR> when she was too sick
+to work on anything serious, and got sick of not having a proper caps lock LED
+on her ThinkPad.
+.
+.\" *******************************************************
+.SH "SEE ALSO"
+.BR keyledd.conf (5),
+.BR systemd-logind (8),
+.BR systemd (1)
+.\" vim: set ft=groff :
