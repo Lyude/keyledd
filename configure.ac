@@ -1,4 +1,4 @@
-AC_INIT([keyledd], [1.0], [thatslyude@gmail.com], [keyledd], [https://github.com/Lyude/keyledd])
+AC_INIT([keyledd], [1.0.1], [thatslyude@gmail.com], [keyledd], [https://github.com/Lyude/keyledd])
 AM_INIT_AUTOMAKE([foreign -Wall])
 AC_CONFIG_MACRO_DIR([m4])
 
