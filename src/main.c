@@ -412,11 +412,7 @@ parse_conf_file(GError **error) {
 		    g_error_matches(*error, G_KEY_FILE_ERROR,
 				    G_KEY_FILE_ERROR_KEY_NOT_FOUND),
 		    false);
-
-		if (error) {
-			g_error_free(*error);
-			*error = NULL;
-		}
+		g_clear_error(error);
 
 		config->led_brightness_off =
 			g_key_file_get_integer(key_file, groups[i],
@@ -426,11 +422,7 @@ parse_conf_file(GError **error) {
 		    g_error_matches(*error, G_KEY_FILE_ERROR,
 				    G_KEY_FILE_ERROR_KEY_NOT_FOUND),
 		    false);
-
-		if (error) {
-			g_error_free(*error);
-			*error = NULL;
-		}
+		g_clear_error(error);
 
 		g_return_val_if_fail(init_led_config(config, error), false);
 
