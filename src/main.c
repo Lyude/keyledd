@@ -226,7 +226,7 @@ init_led_config(struct led_config *config,
 		GError **error) {
 	int rc;
 	bool device_already_opened = false;
-	GList *keys = g_hash_table_get_keys(led_configs);
+	GList *values = g_hash_table_get_values(led_configs);
 	int64_t *hash_key = g_new(int64_t, 1);
 
 	if (!config->led_brightness_on)
@@ -234,7 +234,7 @@ init_led_config(struct led_config *config,
 
 	/* Check to make sure this config doesn't conflict with any of the
 	 * others */
-	for (GList *l = keys; l != NULL; l = l->next) {
+	for (GList *l = values; l != NULL; l = l->next) {
 		struct led_config *c = l->data;
 
 		if (strcmp(config->device_path, c->device_path) == 0) {
