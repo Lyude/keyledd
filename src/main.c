@@ -472,7 +472,7 @@ main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	/* Connect to UPower to update the LED state after standby/hibernate */
+	/* Connect to systemd to update the LED state after standby/hibernate */
 	{
 		GDBusConnection *dbus_connection =
 			g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
