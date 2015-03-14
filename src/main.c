@@ -385,7 +385,7 @@ parse_conf_file(GError **error) {
 		struct led_config *config = g_new0(struct led_config, 1);
 		char *keyboard_led_str;
 
-		config->name = groups[i];
+		config->name = strdup(groups[i]);
 
 		keyboard_led_str = g_key_file_get_string(key_file, groups[i],
 							 "KeyboardLed", error);
