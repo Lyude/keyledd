@@ -128,10 +128,14 @@ init_led_states() {
 					     config->keyboard_led) == 1) {
 			out_data = config->led_brightness_on_str;
 			out_len = config->led_brightness_on_strlen;
+			g_debug("%s: Setting %s to on (%d)",
+				config->name, config->led_path, config->led_brightness_on);
 		}
 		else {
 			out_data = config->led_brightness_off_str;
 			out_len = config->led_brightness_off_strlen;
+			g_debug("%s: Setting %s to off (%d)",
+				config->name, config->led_path, config->led_brightness_off);
 		}
 
 		if (g_io_channel_write_chars(config->led_device,
@@ -195,10 +199,14 @@ update_led(GIOChannel *source,
 		if (ev.value == 1) {
 			out_data = config->led_brightness_on_str;
 			out_len = config->led_brightness_on_strlen;
+			g_debug("%s: Setting %s to on (%d)",
+				config->name, config->led_path, config->led_brightness_on);
 		}
 		else {
 			out_data = config->led_brightness_off_str;
 			out_len = config->led_brightness_off_strlen;
+			g_debug("%s: Setting %s to off (%d)",
+				config->name, config->led_path, config->led_brightness_off);
 		}
 
 		rc = g_io_channel_write_chars(config->led_device, out_data,
