@@ -393,7 +393,7 @@ parse_conf_file(GError **error) {
 
 		config->keyboard_led = parse_keyboard_led(keyboard_led_str,
 							  error);
-		g_return_val_if_fail(config->keyboard_led != 0, false);
+		g_return_val_if_fail(error != NULL, false);
 
 		config->device_path = g_key_file_get_string(key_file, groups[i],
 							    "InputDevice",
