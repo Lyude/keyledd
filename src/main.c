@@ -359,6 +359,8 @@ init_led_config(struct led_config *config,
 	    config->keyboard_led);
 	g_hash_table_insert(led_configs, hash_key, config);
 
+	g_list_free(values);
+
 	return true;
 }
 
