@@ -27,8 +27,6 @@ AC_CHECK_FUNCS([strcasecmp strdup strerror])
 
 AM_SILENT_RULES([yes])
 
-AC_HEADER_STDBOOL
-
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 PKG_CHECK_MODULES([EVDEV], [libevdev])
