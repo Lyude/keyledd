@@ -240,6 +240,11 @@ init_led_config(struct led_config *config,
 	if (!config->led_brightness_on)
 		config->led_brightness_on = 1;
 
+	config->led_path =
+		g_realloc(config->led_path,
+			  strlen(config->led_path) + sizeof("/brightness"));
+	strcat(config->led_path, "/brightness");
+
 	/* Check to make sure this config doesn't conflict with any of the
 	 * others */
 	for (GList *l = values; l != NULL; l = l->next) {
@@ -268,6 +273,9 @@ init_led_config(struct led_config *config,
 		}
 
 		if (strcmp(config->led_path, c->led_path) == 0) {
+			/* Strip the "/brightness" from the end of the string */
+			*g_strrstr(config->led_path, "/brightness") = '\0';
+
 			*error = g_error_new(KEYLEDD_ERROR,
 					     KEYLEDD_ERROR_SYSTEM_LED_TAKEN,
 					     "%s: LED \"%s\" already taken by %s",
@@ -338,11 +346,6 @@ init_led_config(struct led_config *config,
 			       G_IO_IN | G_IO_PRI,
 			       update_led, config->dev);
 	}
-
-	config->led_path =
-		g_realloc(config->led_path,
-			  strlen(config->led_path) + sizeof("/brightness"));
-	strcat(config->led_path, "/brightness");
 
 	config->led_device = g_io_channel_new_file(config->led_path, "w",
 						   error);
