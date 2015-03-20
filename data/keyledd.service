@@ -1,6 +1,5 @@
 [Unit]
 Description=keyledd daemon
-After=multi-user.target
 
 [Service]
 Type=simple
