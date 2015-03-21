@@ -2,7 +2,7 @@
 .SH NAME
 keyledd \- a daemon for missing keyboard LEDs
 .SH SYNOPSIS
-.B keyledd \fR[\fB-hV\fR] [\fB-c \fR\fIconfig-file\fR]
+.B keyledd \fR[\fB-hV\fR] [\fB-c \fR\fIconfig-file\fR] [\fB-p \fR\fIpid-file\fR]
 .
 .\" *******************************************************
 .SH DESCRIPTION
@@ -29,6 +29,11 @@ Print the version of keyledd, and quit.
 .BR \-c\fR,\ \fB\-\-config\-file\fR=\fIfile\fR
 Specify an alternate config file for keyledd to use. By default, keyledd uses
 __config_file_path__
+.TP
+.BR \-p\fR,\ \fB\-\-pid\-file\fR=\fIpid-file\fR
+Specify the path for keyledd to store a pid file in. Only really needed when
+keyledd is used with non-systemd systems. Requires that keyledd be compiled
+with \fB\-\-with\-sysv\-style\-init\fR.
 .
 .\" *******************************************************
 .SH FILES
