@@ -108,6 +108,18 @@ print_version(const char *option_name,
 	      void *data,
 	      GError **error) {
 	printf(PACKAGE_STRING "\n");
+
+#ifdef WITH_SYSTEMD
+	printf("Compiled with systemd support? yes\n");
+#else
+	printf("Compiled with systemd support? no\n");
+#endif /* WITH_SYSTEMD */
+
+#ifdef WITH_SYSV_STYLE_INIT
+	printf("Compiled with sysv-style init support? yes\n");
+#else
+	printf("Compiled with sysv-style init support? no\n");
+#endif /* WITH_SYSV_STYLE_INIT */
 	exit(0);
 }
 
