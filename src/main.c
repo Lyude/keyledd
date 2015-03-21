@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <libevdev/libevdev.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
 
 #include "../config.h"
 
@@ -51,6 +52,10 @@ struct led_config {
 
 static GHashTable *led_configs;
 static char *config_file_path = SYSCONFDIR "/keyledd.conf";
+
+#ifdef WITH_SYSV_STYLE_INIT
+static char *pid_file_path = NULL;
+#endif /* WITH_SYSV_STYLE_INIT */
 
 #define KEYLEDD_ERROR (g_quark_from_static_string("keyledd-error-domain"))
 
@@ -109,6 +114,11 @@ print_version(const char *option_name,
 static GOptionEntry options[] = {
 	{ "version", 'V', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, print_version, "Print version", NULL },
 	{ "config-file", 'c', G_OPTION_FLAG_NONE, G_OPTION_ARG_FILENAME, &config_file_path, "Path to config file", "<file>" },
+
+#ifdef WITH_SYSV_STYLE_INIT
+	{ "pid-file", 'p', G_OPTION_FLAG_NONE, G_OPTION_ARG_FILENAME, &pid_file_path, "Path to PID file", "<pid-file>" },
+#endif /* WITH_SYSV_STYLE_INIT */
+
 	{ NULL }
 };
 
@@ -150,6 +160,7 @@ init_led_states() {
 	g_list_free(configs);
 }
 
+#ifdef WITH_SYSTEMD
 static void
 prepare_for_sleep(GDBusConnection *connection,
 		  const char *sender_name,
@@ -166,6 +177,7 @@ prepare_for_sleep(GDBusConnection *connection,
 
 	g_variant_unref(going_to_sleep);
 }
+#endif /* WITH_SYSTEMD */
 
 static gboolean
 update_led(GIOChannel *source,
@@ -448,6 +460,17 @@ parse_conf_file(GError **error) {
 	return true;
 }
 
+#ifdef WITH_SYSV_STYLE_INIT
+static gboolean
+cleanup_pid_file(void *data) {
+	char *pid_file_path = data;
+
+	g_warn_if_fail(remove(pid_file_path) == 0);
+
+	exit(0);
+}
+#endif /* WITH_SYSV_STYLE_INIT */
+
 int
 main(int argc, char *argv[]) {
 	GError *error = NULL;
@@ -475,6 +498,25 @@ main(int argc, char *argv[]) {
 		exit(1);
 	}
 
+#ifdef WITH_SYSV_STYLE_INIT
+	if (pid_file_path) {
+		char *pid_str;
+
+		pid_str = g_strdup_printf("%d", getpid());
+		if (!g_file_set_contents(pid_file_path, pid_str, -1, &error)) {
+			fprintf(stderr, "Error writing PID file: %s\n",
+				error->message);
+			exit(1);
+		}
+
+		g_unix_signal_add(SIGTERM, cleanup_pid_file, pid_file_path);
+		g_unix_signal_add(SIGINT, cleanup_pid_file, pid_file_path);
+		g_unix_signal_add(SIGHUP, cleanup_pid_file, pid_file_path);
+
+		g_free(pid_str);
+	}
+#endif /* WITH_SYSV_STYLE_INIT */
+
 	g_option_context_free(option_context);
 
 	led_configs = g_hash_table_new(g_int64_hash, g_int64_equal);
@@ -496,6 +538,7 @@ main(int argc, char *argv[]) {
 			exit(1);
 		}
 
+#ifdef WITH_SYSTEMD
 		g_dbus_connection_signal_subscribe(dbus_connection,
 						   NULL,
 						   "org.freedesktop.login1.Manager",
@@ -505,6 +548,7 @@ main(int argc, char *argv[]) {
 						   G_DBUS_SIGNAL_FLAGS_NONE,
 						   prepare_for_sleep,
 						   NULL, NULL);
+#endif /* WITH_SYSTEMD */
 	}
 
 	/* Initialize all of the LEDs to match their keyboard LEDs state */
