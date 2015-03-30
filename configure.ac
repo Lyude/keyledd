@@ -85,5 +85,5 @@ PKG_CHECK_MODULES([EVDEV], [libevdev])
 AC_DEFINE_DIR([SYSCONFDIR], [sysconfdir], [Where config files are stored.])
 
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile man/Makefile])
 AC_OUTPUT
