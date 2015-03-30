@@ -76,6 +76,8 @@ if test "$with_sysv_style_init" != "no"; then
 		  [Define if we have a plain sysv-style init])
 fi
 
+AM_CONDITIONAL([WITH_SYSTEMD], [test $with_systemd != no])
+
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 PKG_CHECK_MODULES([EVDEV], [libevdev])
