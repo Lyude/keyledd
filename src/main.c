@@ -62,7 +62,8 @@ static char *pid_file_path = NULL;
 enum keyledd_error {
 	KEYLEDD_ERROR_KEYBOARD_LED_TAKEN,
 	KEYLEDD_ERROR_SYSTEM_LED_TAKEN,
-	KEYLEDD_ERROR_NO_LEDS_DEFINED
+	KEYLEDD_ERROR_NO_LEDS_DEFINED,
+	KEYLEDD_ERROR_EVDEV_ERROR
 };
 
 /* Hash keys for keyboard led/device pairs look like this:
@@ -94,8 +95,10 @@ parse_keyboard_led(const char *value,
 		 strcasecmp(value, "numberlock") == 0)
 		keyboard_led = LED_NUML;
 	else {
-		*error = g_error_new(G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
-				     "Invalid value for KeyboardLed");
+		*error = g_error_new(G_KEY_FILE_ERROR,
+				     G_KEY_FILE_ERROR_INVALID_VALUE,
+				     "Invalid value for 'KeyboardLED': '%s'",
+				     value);
 		return 0;
 	}
 
@@ -289,7 +292,8 @@ init_led_config(struct led_config *config,
 			       *error = g_error_new(
 				    KEYLEDD_ERROR,
 				    KEYLEDD_ERROR_KEYBOARD_LED_TAKEN,
-				    "%s: Keyboard code already taken by %s",
+				    "In '%s': Keyboard code already taken "
+				    "by '%s'",
 				    config->name, c->name);
 
 			       return false;
@@ -300,11 +304,12 @@ init_led_config(struct led_config *config,
 			/* Strip the "/brightness" from the end of the string */
 			*g_strrstr(config->led_path, "/brightness") = '\0';
 
-			*error = g_error_new(KEYLEDD_ERROR,
-					     KEYLEDD_ERROR_SYSTEM_LED_TAKEN,
-					     "%s: LED \"%s\" already taken by %s",
-					     config->name, config->led_path,
-					     c->name);
+			*error = g_error_new(
+			    KEYLEDD_ERROR,
+			    KEYLEDD_ERROR_SYSTEM_LED_TAKEN,
+			    "In '%s': LED '%s' already taken by '%s'",
+			    config->name, config->led_path,
+			    c->name);
 
 			return false;
 		}
@@ -346,24 +351,24 @@ init_led_config(struct led_config *config,
 			g_io_channel_new_file(config->device_path, "r", error);
 
 		if (!io_channel)
-			return false;
+			goto device_open_error;
 
 		if (g_io_channel_set_flags(io_channel, G_IO_FLAG_NONBLOCK,
 					   error) != G_IO_STATUS_NORMAL)
-			return false;
+			goto device_open_error;
 
 		rc = libevdev_new_from_fd(g_io_channel_unix_get_fd(io_channel),
 					  &config->dev);
 		if (rc < 0) {
-			fprintf(stderr,
-				"Failed to initialize libevdev for \"%s\": %s\n",
-				config->name, strerror(rc));
-			exit(1);
+			*error = g_error_new(KEYLEDD_ERROR,
+					     KEYLEDD_ERROR_EVDEV_ERROR,
+					     "%s", strerror(rc));
+			goto device_open_error;
 		}
 
 		if (g_io_channel_set_encoding(io_channel, NULL, error) !=
 		    G_IO_STATUS_NORMAL)
-			return false;
+			goto device_open_error;
 
 		config->input_device = io_channel;
 		g_io_add_watch(io_channel,
@@ -374,11 +379,11 @@ init_led_config(struct led_config *config,
 	config->led_device = g_io_channel_new_file(config->led_path, "w",
 						   error);
 	if (!config->led_device)
-		return false;
+		goto led_open_error;
 
 	if (g_io_channel_set_encoding(config->led_device, NULL, error)
 	    != G_IO_STATUS_NORMAL)
-		return false;
+		goto led_open_error;
 
 	g_io_channel_set_buffered(config->led_device, false);
 
@@ -390,6 +395,14 @@ init_led_config(struct led_config *config,
 	g_list_free(values);
 
 	return true;
+
+device_open_error:
+	g_prefix_error(error, "While opening '%s': ", config->device_path);
+	return false;
+
+led_open_error:
+	g_prefix_error(error, "While opening '%s': ", config->led_path);
+	return false;
 }
 
 static bool
@@ -427,23 +440,23 @@ parse_conf_file(GError **error) {
 		keyboard_led_str = g_key_file_get_string(key_file, groups[i],
 							 "KeyboardLed", error);
 		if (!keyboard_led_str)
-			return false;
+			goto config_file_error;
 
 		config->keyboard_led = parse_keyboard_led(keyboard_led_str,
 							  error);
 		if (*error)
-			return false;
+			goto config_file_error;
 
 		config->device_path = g_key_file_get_string(key_file, groups[i],
 							    "InputDevice",
 							    error);
 		if (!config->device_path)
-			return false;
+			goto config_file_error;
 
 		config->led_path = g_key_file_get_string(key_file, groups[i],
 							 "LedDevice", error);
 		if (!config->led_path)
-			return false;
+			goto config_file_error;
 
 		config->led_brightness_on =
 			g_key_file_get_integer(key_file, groups[i],
@@ -451,7 +464,7 @@ parse_conf_file(GError **error) {
 		if (!config->led_brightness_on &&
 		    !g_error_matches(*error, G_KEY_FILE_ERROR,
 				     G_KEY_FILE_ERROR_KEY_NOT_FOUND))
-			return false;
+			goto config_file_error;
 
 		g_clear_error(error);
 
@@ -462,14 +475,21 @@ parse_conf_file(GError **error) {
 		if (!config->led_brightness_off &&
 		    !g_error_matches(*error, G_KEY_FILE_ERROR,
 				     G_KEY_FILE_ERROR_KEY_NOT_FOUND))
-			return false;
+			goto config_file_error;
 
 		g_clear_error(error);
 
 		if (!init_led_config(config, error))
-			return false;
+			goto config_file_error;
 
 		g_free(keyboard_led_str);
+		continue;
+
+config_file_error:
+		if ((*error)->domain == G_KEY_FILE_ERROR)
+			g_prefix_error(error, "In '%s': ", groups[i]);
+
+		return false;
 	}
 
 	g_key_file_free(key_file);
@@ -540,8 +560,13 @@ main(int argc, char *argv[]) {
 	led_configs = g_hash_table_new(g_int64_hash, g_int64_equal);
 
 	if (!parse_conf_file(&error)) {
-		fprintf(stderr, "Config file error: %s\n",
-			error->message);
+		if (error->domain == G_KEY_FILE_ERROR)
+			fprintf(stderr, "Config file error: %s\n",
+				error->message);
+		else
+			fprintf(stderr, "Error: %s\n",
+				error->message);
+
 		exit(1);
 	}
 
