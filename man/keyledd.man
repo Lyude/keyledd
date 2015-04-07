@@ -20,6 +20,7 @@ each LED's state after standby, hibernation, etc.
 .SH OPTIONS
 .
 .SS
+.TP
 .BR \-h\fR,\ \fB\-\-help
 Print a summary of command line options, and quit.
 .TP
