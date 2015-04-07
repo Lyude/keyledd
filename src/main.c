@@ -345,12 +345,12 @@ init_led_config(struct led_config *config,
 		GIOChannel *io_channel =
 			g_io_channel_new_file(config->device_path, "r", error);
 
-		g_return_val_if_fail(io_channel, false);
+		if (!io_channel)
+			return false;
 
-		g_return_val_if_fail(
-		    g_io_channel_set_flags(io_channel, G_IO_FLAG_NONBLOCK,
-					   error) == G_IO_STATUS_NORMAL,
-		    false);
+		if (g_io_channel_set_flags(io_channel, G_IO_FLAG_NONBLOCK,
+					   error) != G_IO_STATUS_NORMAL)
+			return false;
 
 		rc = libevdev_new_from_fd(g_io_channel_unix_get_fd(io_channel),
 					  &config->dev);
@@ -361,10 +361,10 @@ init_led_config(struct led_config *config,
 			exit(1);
 		}
 
-		g_return_val_if_fail(
-		    g_io_channel_set_encoding(
-			io_channel, NULL, error) == G_IO_STATUS_NORMAL,
-		    false);
+		if (g_io_channel_set_encoding(io_channel, NULL, error) !=
+		    G_IO_STATUS_NORMAL)
+			return false;
+
 		config->input_device = io_channel;
 		g_io_add_watch(io_channel,
 			       G_IO_IN | G_IO_PRI,
@@ -373,12 +373,13 @@ init_led_config(struct led_config *config,
 
 	config->led_device = g_io_channel_new_file(config->led_path, "w",
 						   error);
-	g_return_val_if_fail(config->led_device, false);
+	if (!config->led_device)
+		return false;
 
-	g_return_val_if_fail(
-	    g_io_channel_set_encoding(
-		config->led_device, NULL, error) == G_IO_STATUS_NORMAL,
-	    false);
+	if (g_io_channel_set_encoding(config->led_device, NULL, error)
+	    != G_IO_STATUS_NORMAL)
+		return false;
+
 	g_io_channel_set_buffered(config->led_device, false);
 
 	*hash_key = get_led_config_hash_key(
@@ -398,13 +399,12 @@ parse_conf_file(GError **error) {
 	char **groups;
 	size_t groups_len;
 
-	g_return_val_if_fail(
-	    g_file_get_contents(config_file_path, &key_file_data, NULL, error),
-	    false);
-	g_return_val_if_fail(
-	    g_key_file_load_from_data(key_file, key_file_data, -1,
-				      G_KEY_FILE_NONE, error),
-	    false);
+	if (!g_file_get_contents(config_file_path, &key_file_data, NULL, error))
+		return false;
+
+	if (!g_key_file_load_from_data(key_file, key_file_data, -1,
+				       G_KEY_FILE_NONE, error))
+		return false;
 
 	g_free(key_file_data);
 
@@ -426,42 +426,48 @@ parse_conf_file(GError **error) {
 
 		keyboard_led_str = g_key_file_get_string(key_file, groups[i],
 							 "KeyboardLed", error);
-		g_return_val_if_fail(keyboard_led_str != NULL, false);
+		if (!keyboard_led_str)
+			return false;
 
 		config->keyboard_led = parse_keyboard_led(keyboard_led_str,
 							  error);
-		g_return_val_if_fail(error != NULL, false);
+		if (*error)
+			return false;
 
 		config->device_path = g_key_file_get_string(key_file, groups[i],
 							    "InputDevice",
 							    error);
-		g_return_val_if_fail(config->device_path != NULL, false);
+		if (!config->device_path)
+			return false;
 
 		config->led_path = g_key_file_get_string(key_file, groups[i],
 							 "LedDevice", error);
-		g_return_val_if_fail(config->led_path != NULL, false);
+		if (!config->led_path)
+			return false;
 
 		config->led_brightness_on =
 			g_key_file_get_integer(key_file, groups[i],
 					       "BrightnessOn", error);
-		g_return_val_if_fail(
-		    config->led_brightness_on ||
-		    g_error_matches(*error, G_KEY_FILE_ERROR,
-				    G_KEY_FILE_ERROR_KEY_NOT_FOUND),
-		    false);
+		if (!config->led_brightness_on &&
+		    !g_error_matches(*error, G_KEY_FILE_ERROR,
+				     G_KEY_FILE_ERROR_KEY_NOT_FOUND))
+			return false;
+
 		g_clear_error(error);
 
 		config->led_brightness_off =
 			g_key_file_get_integer(key_file, groups[i],
 					       "BrightnessOff", error);
-		g_return_val_if_fail(
-		    config->led_brightness_off ||
-		    g_error_matches(*error, G_KEY_FILE_ERROR,
-				    G_KEY_FILE_ERROR_KEY_NOT_FOUND),
-		    false);
+
+		if (!config->led_brightness_off &&
+		    !g_error_matches(*error, G_KEY_FILE_ERROR,
+				     G_KEY_FILE_ERROR_KEY_NOT_FOUND))
+			return false;
+
 		g_clear_error(error);
 
-		g_return_val_if_fail(init_led_config(config, error), false);
+		if (!init_led_config(config, error))
+			return false;
 
 		g_free(keyboard_led_str);
 	}
