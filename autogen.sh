@@ -4,4 +4,6 @@ set -e
 
 [ -d "build-aux" ] || mkdir build-aux
 autoreconf --install -v --force
-./configure $@
+if [ "$NOCONFIGURE" != "1" ]; then
+	./configure $@
+fi
