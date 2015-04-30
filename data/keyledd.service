@@ -3,7 +3,7 @@ Description=keyledd daemon
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/keyledd
+ExecStart=/usr/sbin/keyledd
 
 [Install]
 WantedBy=multi-user.target
